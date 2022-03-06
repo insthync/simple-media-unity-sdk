@@ -18,6 +18,8 @@ namespace SimpleMediaSDK
             base.OnEnable();
             if (seekSlider)
                 seekSlider.onValueChanged.AddListener(OnSeekSliderValueChanged);
+            if (mediaList)
+                mediaList.Load(playListId);
         }
 
         protected override void OnDisable()
