@@ -8,5 +8,6 @@ namespace SimpleMediaSDK
         public bool isPlaying;
         public string filePath;
         public double time;
+        public double duration;
     }
 }

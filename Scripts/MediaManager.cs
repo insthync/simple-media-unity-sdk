@@ -1,6 +1,7 @@
 using SocketIOClient;
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -30,6 +31,7 @@ namespace SimpleMediaSDK
         public event Action onGetVideos;
         public string UserToken { get; set; }
         private SocketIO client;
+        private ConcurrentQueue<RespData> respQueue = new ConcurrentQueue<RespData>();
 
         private void Awake()
         {
@@ -47,6 +49,16 @@ namespace SimpleMediaSDK
             await Disconnect();
         }
 
+        private void LateUpdate()
+        {
+            while (respQueue.Count > 0)
+            {
+                RespData data;
+                if (respQueue.TryDequeue(out data))
+                    onResp.Invoke(data);
+            }
+        }
+
         public async Task Connect()
         {
             await Disconnect();
@@ -58,7 +70,7 @@ namespace SimpleMediaSDK
         private void OnResp(SocketIOResponse resp)
         {
             RespData data = resp.GetValue<RespData>();
-            onResp.Invoke(data);
+            respQueue.Enqueue(data);
         }
 
         public async Task Disconnect()
@@ -96,11 +108,11 @@ namespace SimpleMediaSDK
             await client.EmitAsync("stop", data);
         }
 
-        public async Task Seek(string playListId, double position)
+        public async Task Seek(string playListId, double time)
         {
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
-            data[nameof(position)] = position;
+            data[nameof(time)] = time;
             await client.EmitAsync("seek", data);
         }
 

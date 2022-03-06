@@ -11,6 +11,7 @@ namespace SimpleMediaSDK
     {
         public Slider seekSlider;
         public UIMediaList mediaList;
+        protected float dirtyLastRespTime;
 
         protected override void OnEnable()
         {
@@ -24,6 +25,20 @@ namespace SimpleMediaSDK
             base.OnDisable();
             if (seekSlider)
                 seekSlider.onValueChanged.RemoveListener(OnSeekSliderValueChanged);
+        }
+
+        private void Update()
+        {
+            if (seekSlider)
+            {
+                seekSlider.minValue = 0;
+                seekSlider.maxValue = (float)LastResp.duration;
+                if (dirtyLastRespTime != LastRespTime || LastResp.isPlaying)
+                {
+                    dirtyLastRespTime = LastRespTime;
+                    seekSlider.SetValueWithoutNotify((float)LastResp.time + Time.unscaledTime - LastRespTime);
+                }
+            }
         }
 
         private void OnSeekSliderValueChanged(float value)
