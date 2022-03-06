@@ -25,6 +25,9 @@ namespace SimpleMediaSDK
 
         public string serviceAddress = "http://localhost:8216";
         public event Action<RespData> onResp;
+        public event Action onUploadVideo;
+        public event Action onDeleteVideo;
+        public event Action onGetVideos;
         public string UserToken { get; set; }
         private SocketIO client;
 
@@ -101,7 +104,7 @@ namespace SimpleMediaSDK
             await client.EmitAsync("seek", data);
         }
 
-        public async Task Upload(string id, string playListId, byte[] file, string fileExt)
+        public async Task Upload(string playListId, byte[] file, string fileExt)
         {
             WWWForm form = new WWWForm();
             if (fileExt.Equals("mp4"))
@@ -134,7 +137,8 @@ namespace SimpleMediaSDK
 #endif
             if (isHttpError || isNetworkError)
                 return;
-            // Do something when delete video
+            // Do something when upload video
+            onUploadVideo.Invoke();
         }
 
         public async Task Delete(string id)
@@ -143,6 +147,7 @@ namespace SimpleMediaSDK
             if (result.IsNetworkError || result.IsHttpError)
                 return;
             // Do something when delete video
+            onDeleteVideo.Invoke();
         }
 
         public async Task Get(string playListId)
@@ -151,6 +156,7 @@ namespace SimpleMediaSDK
             if (result.IsNetworkError || result.IsHttpError)
                 return;
             // Do something when get playlist
+            onGetVideos.Invoke();
         }
     }
 }
