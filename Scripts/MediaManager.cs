@@ -28,10 +28,11 @@ namespace SimpleMediaSDK
         public event Action<RespData> onResp;
         public event Action onUploadVideo;
         public event Action onDeleteVideo;
-        public event Action onGetVideos;
+        public event Action<List<MediaData>> onGetVideos;
         public string UserToken { get; set; }
         private SocketIO client;
         private ConcurrentQueue<RespData> respQueue = new ConcurrentQueue<RespData>();
+        private ConcurrentDictionary<string, RespData> lastRespEachPlaylists = new ConcurrentDictionary<string, RespData>();
 
         private void Awake()
         {
@@ -62,6 +63,7 @@ namespace SimpleMediaSDK
         public async Task Connect()
         {
             await Disconnect();
+            lastRespEachPlaylists.Clear();
             client = new SocketIO(serviceAddress);
             client.On("resp", OnResp);
             await client.ConnectAsync();
@@ -71,6 +73,7 @@ namespace SimpleMediaSDK
         {
             RespData data = resp.GetValue<RespData>();
             respQueue.Enqueue(data);
+            lastRespEachPlaylists[data.playListId] = data;
         }
 
         public async Task Disconnect()
@@ -162,13 +165,14 @@ namespace SimpleMediaSDK
             onDeleteVideo.Invoke();
         }
 
-        public async Task Get(string playListId)
+        public async Task<List<MediaData>> Get(string playListId)
         {
-            RestClient.Result result = await RestClient.Get(RestClient.GetUrl(serviceAddress, "/" + playListId), string.Empty);
+            RestClient.Result<List<MediaData>> result = await RestClient.Get<List<MediaData>>(RestClient.GetUrl(serviceAddress, "/" + playListId));
             if (result.IsNetworkError || result.IsHttpError)
-                return;
+                return new List<MediaData>();
             // Do something when get playlist
-            onGetVideos.Invoke();
+            onGetVideos.Invoke(result.Content);
+            return result.Content;
         }
     }
 }
