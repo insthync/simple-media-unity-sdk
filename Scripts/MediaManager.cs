@@ -111,7 +111,7 @@ namespace SimpleMediaSDK
                 form.AddBinaryData("file", file, "file.mp4", "video/mp4");
             else if (fileExt.Equals("wav"))
                 form.AddBinaryData("file", file, "file.wav", "audio/x-wav");
-
+            form.AddField(nameof(playListId), playListId);
 
             UnityWebRequest webRequest = UnityWebRequest.Post(RestClient.GetUrl(serviceAddress, "/upload"), form);
 
