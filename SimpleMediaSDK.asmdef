@@ -1,0 +1,17 @@
+{
+    "name": "SimpleMediaSDK",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d831e907420eb7d4b82b4ebeddff3030",
+        "GUID:c685d05731421f64287ad6d13be5af0e"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

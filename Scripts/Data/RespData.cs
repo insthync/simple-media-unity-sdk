@@ -7,6 +7,6 @@ namespace SimpleMediaSDK
         public string playListId;
         public bool isPlaying;
         public string filePath;
-        public double position;
+        public double time;
     }
 }

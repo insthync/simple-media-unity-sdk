@@ -24,6 +24,7 @@ namespace SimpleMediaSDK
         private void Instance_onResp(RespData resp)
         {
             CurrentMediaId = resp.mediaId;
+            videoPlayer.time = resp.time;
         }
     }
 }

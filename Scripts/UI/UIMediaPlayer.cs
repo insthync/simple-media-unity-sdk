@@ -1,7 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-using SFB;
+using SimpleFileBrowser;
+using UnityEngine;
 using UnityEngine.UI;
 
 namespace SimpleMediaSDK
@@ -9,6 +10,7 @@ namespace SimpleMediaSDK
     public class UIMediaPlayer : MediaPlayer
     {
         public Slider seekSlider;
+        public UIMediaList mediaList;
 
         protected override void OnEnable()
         {
@@ -26,7 +28,7 @@ namespace SimpleMediaSDK
 
         private void OnSeekSliderValueChanged(float value)
         {
-
+            MediaManager.Instance.Seek(playListId, value);
         }
 
         public void OnClickPlay()
@@ -51,57 +53,24 @@ namespace SimpleMediaSDK
 
         public void OnClickUpload()
         {
-            var extensions = new[] {
-                new ExtensionFilter("Video Files", "mp4")
-            };
-            StandaloneFileBrowser.OpenFilePanelAsync("Open File", "", extensions, false, OnOpenVideoFile);
+            FileBrowser.SetFilters(true, new FileBrowser.Filter("Video Files", ".mp4"));
+            StartCoroutine(OpenFile());
         }
 
-        private void OnOpenVideoFile(string[] paths)
+        IEnumerator OpenFile()
         {
-            if (paths == null || paths.Length == 0)
-                return;
-            var path = paths[0];
-            if (File.Exists(path))
+            yield return FileBrowser.WaitForLoadDialog(FileBrowser.PickMode.Files, true, null, null, "Load Files", "Load");
+
+            if (FileBrowser.Success)
             {
-                var splitedPath = path.Split('.');
-                MediaManager.Instance.Upload(playListId, File.ReadAllBytes(path), splitedPath[splitedPath.Length - 1]);
+                var splitedPath = FileBrowser.Result[0].Split('.');
+                byte[] bytes = FileBrowserHelpers.ReadBytesFromFile(FileBrowser.Result[0]);
+                MediaManager.Instance.Upload(playListId, bytes, splitedPath[splitedPath.Length - 1]);
             }
             else
             {
                 Debug.LogError("Wrong select file path");
             }
         }
-
-        /*
-
-        public void OnClickAddAudio()
-        {
-            if (!CanManage())
-                return;
-            var extensions = new[] {
-                new ExtensionFilter("Audio Files", "wav")
-        };
-            StandaloneFileBrowser.OpenFilePanelAsync("Open File", "", extensions, false, OnOpenAudioFile);
-        }
-
-        private void OnOpenAudioFile(string[] paths)
-        {
-            if (!CanManage())
-                return;
-            if (paths == null || paths.Length == 0)
-                return;
-            var path = paths[0];
-            if (File.Exists(path))
-            {
-                var splitedPath = path.Split('.');
-                StartCoroutine(UploadMediaRoutine(File.ReadAllBytes(path), splitedPath[splitedPath.Length - 1]));
-            }
-            else
-            {
-                Debug.LogError("Wrong select file path");
-            }
-        }
-        */
     }
 }
