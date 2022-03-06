@@ -65,6 +65,42 @@ namespace SimpleMediaSDK
             client = null;
         }
 
+        public async Task Sub(string playListId)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            await client.EmitAsync("sub", data);
+        }
+
+        public async Task Play(string playListId)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            await client.EmitAsync("play", data);
+        }
+
+        public async Task Pause(string playListId)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            await client.EmitAsync("pause", data);
+        }
+
+        public async Task Stop(string playListId)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            await client.EmitAsync("stop", data);
+        }
+
+        public async Task Seek(string playListId, double position)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            data[nameof(position)] = position;
+            await client.EmitAsync("seek", data);
+        }
+
         public async Task Upload(string id, string playListId, byte[] file, string fileExt)
         {
             WWWForm form = new WWWForm();
