@@ -1,0 +1,16 @@
+{
+    "name": "SimpleMedia",
+    "rootNamespace": "",
+    "references": [
+        "GUID:d831e907420eb7d4b82b4ebeddff3030"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
