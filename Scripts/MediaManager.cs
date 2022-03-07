@@ -25,11 +25,13 @@ namespace SimpleMediaSDK
         }
 
         public string serviceAddress = "http://localhost:8216";
+        public string serviceSecretKey = "secret";
+        public event Action<string> onAddUser;
         public event Action<RespData> onResp;
         public event Action onUploadVideo;
         public event Action onDeleteVideo;
         public event Action<List<MediaData>> onGetVideos;
-        public string UserToken { get; set; }
+        public string userToken { get; set; }
         private SocketIO client;
         private ConcurrentQueue<RespData> respQueue = new ConcurrentQueue<RespData>();
         private ConcurrentDictionary<string, RespData> lastRespEachPlaylists = new ConcurrentDictionary<string, RespData>();
@@ -83,6 +85,16 @@ namespace SimpleMediaSDK
             client = null;
         }
 
+        public async Task AddUser(string userToken)
+        {
+            Dictionary<string, string> form = new Dictionary<string, string>();
+            form.Add(nameof(userToken), userToken);
+            RestClient.Result result = await RestClient.Post(RestClient.GetUrl(serviceAddress, "/add-user"), form, serviceSecretKey);
+            if (result.IsNetworkError || result.IsHttpError)
+                return;
+            onAddUser.Invoke(userToken);
+        }
+
         public async Task Sub(string playListId)
         {
             Dictionary<string, object> data = new Dictionary<string, object>();
@@ -94,6 +106,7 @@ namespace SimpleMediaSDK
         {
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
+            data[nameof(userToken)] = userToken;
             await client.EmitAsync("play", data);
         }
 
@@ -101,6 +114,7 @@ namespace SimpleMediaSDK
         {
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
+            data[nameof(userToken)] = userToken;
             await client.EmitAsync("pause", data);
         }
 
@@ -108,6 +122,7 @@ namespace SimpleMediaSDK
         {
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
+            data[nameof(userToken)] = userToken;
             await client.EmitAsync("stop", data);
         }
 
@@ -116,7 +131,17 @@ namespace SimpleMediaSDK
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
             data[nameof(time)] = time;
+            data[nameof(userToken)] = userToken;
             await client.EmitAsync("seek", data);
+        }
+
+        public async Task Switch(string playListId, double time)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            data[nameof(time)] = time;
+            data[nameof(userToken)] = userToken;
+            await client.EmitAsync("switch", data);
         }
 
         public async Task Upload(string playListId, byte[] file, string fileExt)
@@ -129,6 +154,8 @@ namespace SimpleMediaSDK
             form.AddField(nameof(playListId), playListId);
 
             UnityWebRequest webRequest = UnityWebRequest.Post(RestClient.GetUrl(serviceAddress, "/upload"), form);
+            webRequest.certificateHandler = new SimpleWebRequestCert();
+            webRequest.SetRequestHeader("Authorization", "Bearer " + userToken);
 
             UnityWebRequestAsyncOperation ayncOp = webRequest.SendWebRequest();
             while (!ayncOp.isDone)
@@ -158,7 +185,7 @@ namespace SimpleMediaSDK
 
         public async Task Delete(string id)
         {
-            RestClient.Result result = await RestClient.Delete(RestClient.GetUrl(serviceAddress, "/" + id), UserToken);
+            RestClient.Result result = await RestClient.Delete(RestClient.GetUrl(serviceAddress, "/" + id), userToken);
             if (result.IsNetworkError || result.IsHttpError)
                 return;
             // Do something when delete video
