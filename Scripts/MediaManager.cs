@@ -92,7 +92,8 @@ namespace SimpleMediaSDK
             RestClient.Result result = await RestClient.Post(RestClient.GetUrl(serviceAddress, "/add-user"), form, serviceSecretKey);
             if (result.IsNetworkError || result.IsHttpError)
                 return;
-            onAddUser.Invoke(userToken);
+            if (onAddUser != null)
+                onAddUser.Invoke(userToken);
         }
 
         public async Task Sub(string playListId)
@@ -180,7 +181,8 @@ namespace SimpleMediaSDK
             if (isHttpError || isNetworkError)
                 return;
             // Do something when upload video
-            onUploadVideo.Invoke();
+            if (onUploadVideo != null)
+                onUploadVideo.Invoke();
         }
 
         public async Task Delete(string id)
@@ -189,7 +191,8 @@ namespace SimpleMediaSDK
             if (result.IsNetworkError || result.IsHttpError)
                 return;
             // Do something when delete video
-            onDeleteVideo.Invoke();
+            if (onDeleteVideo != null)
+                onDeleteVideo.Invoke();
         }
 
         public async Task<List<MediaData>> Get(string playListId)
@@ -198,7 +201,8 @@ namespace SimpleMediaSDK
             if (result.IsNetworkError || result.IsHttpError)
                 return new List<MediaData>();
             // Do something when get playlist
-            onGetVideos.Invoke(result.Content);
+            if (onGetVideos != null)
+                onGetVideos.Invoke(result.Content);
             return result.Content;
         }
     }
