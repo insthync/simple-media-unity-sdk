@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -15,14 +13,15 @@ namespace SimpleMediaSDK
 
         protected virtual void OnEnable()
         {
-            MediaManager.Instance.Sub(playListId);
             MediaManager.Instance.onResp += Instance_onResp;
             videoPlayer.prepareCompleted += VideoPlayer_prepareCompleted;
+            MediaManager.Instance.Sub(playListId);
         }
 
         protected virtual void OnDisable()
         {
             MediaManager.Instance.onResp -= Instance_onResp;
+            videoPlayer.prepareCompleted -= VideoPlayer_prepareCompleted;
         }
 
         private void Instance_onResp(RespData resp)
@@ -38,11 +37,11 @@ namespace SimpleMediaSDK
         {
             source.time = LastResp.time;
             if (LastResp.isPlaying)
-                videoPlayer.Play();
+                source.Play();
             else if (LastResp.time <= 0f)
-                videoPlayer.Stop();
+                source.Stop();
             else
-                videoPlayer.Pause();
+                source.Pause();
         }
     }
 }
