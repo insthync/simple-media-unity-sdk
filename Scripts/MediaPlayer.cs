@@ -15,6 +15,7 @@ namespace SimpleMediaSDK
 
         protected virtual void OnEnable()
         {
+            MediaManager.Instance.Sub(playListId);
             MediaManager.Instance.onResp += Instance_onResp;
             videoPlayer.prepareCompleted += VideoPlayer_prepareCompleted;
         }
