@@ -135,11 +135,11 @@ namespace SimpleMediaSDK
             await client.EmitAsync("seek", data);
         }
 
-        public async Task Switch(string playListId, double time)
+        public async Task Switch(string playListId, string mediaId)
         {
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
-            data[nameof(time)] = time;
+            data[nameof(mediaId)] = mediaId;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("switch", data);
         }

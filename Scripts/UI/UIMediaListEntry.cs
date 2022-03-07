@@ -31,5 +31,15 @@ namespace SimpleMediaSDK
             if (textSortOrder)
                 textSortOrder.text = Data.sortOrder.ToString("N2");
         }
+
+        public void OnClickSwitch()
+        {
+            MediaManager.Instance.Switch(Data.playListId, Data.id);
+        }
+
+        public void OnClickDelete()
+        {
+            MediaManager.Instance.Delete(Data.id);
+        }
     }
 }
