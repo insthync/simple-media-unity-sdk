@@ -58,7 +58,10 @@ namespace SimpleMediaSDK
             {
                 RespData data;
                 if (respQueue.TryDequeue(out data))
-                    onResp.Invoke(data);
+                {
+                    if (onResp != null)
+                        onResp.Invoke(data);
+                }
             }
         }
 
