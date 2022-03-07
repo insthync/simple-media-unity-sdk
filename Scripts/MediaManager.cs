@@ -34,6 +34,7 @@ namespace SimpleMediaSDK
         public string userToken { get; set; }
         private SocketIO client;
         private ConcurrentQueue<RespData> respQueue = new ConcurrentQueue<RespData>();
+        private HashSet<string> pendingSubs = new HashSet<string>();
         private ConcurrentDictionary<string, RespData> lastRespEachPlaylists = new ConcurrentDictionary<string, RespData>();
 
         private void Awake()
@@ -72,6 +73,9 @@ namespace SimpleMediaSDK
             client = new SocketIO(serviceAddress);
             client.On("resp", OnResp);
             await client.ConnectAsync();
+            foreach (var pendingSub in pendingSubs)
+                await Sub(pendingSub);
+            pendingSubs.Clear();
         }
 
         private void OnResp(SocketIOResponse resp)
@@ -101,6 +105,11 @@ namespace SimpleMediaSDK
 
         public async Task Sub(string playListId)
         {
+            if (client == null || !client.Connected)
+            {
+                pendingSubs.Add(playListId);
+                return;
+            }
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
             await client.EmitAsync("sub", data);
