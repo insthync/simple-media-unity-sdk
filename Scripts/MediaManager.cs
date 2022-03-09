@@ -13,6 +13,18 @@ namespace SimpleMediaSDK
 {
     public class MediaManager : MonoBehaviour
     {
+        private enum TaskQueueType
+        {
+            Resp,
+            Upload,
+            Delete,
+            Get,
+        }
+        private struct TaskQueue
+        {
+            public TaskQueueType type;
+            public object data;
+        }
         private static MediaManager instance;
         public static MediaManager Instance
         {
@@ -28,12 +40,12 @@ namespace SimpleMediaSDK
         public string serviceSecretKey = "secret";
         public event Action<string> onAddUser;
         public event Action<RespData> onResp;
-        public event Action onUploadVideo;
-        public event Action onDeleteVideo;
-        public event Action<List<MediaData>> onGetVideos;
+        public event Action onUpload;
+        public event Action onDelete;
+        public event Action<List<MediaData>> onGet;
         public string userToken { get; set; }
         private SocketIO client;
-        private ConcurrentQueue<RespData> respQueue = new ConcurrentQueue<RespData>();
+        private ConcurrentQueue<TaskQueue> taskQueues = new ConcurrentQueue<TaskQueue>();
         private HashSet<string> pendingSubs = new HashSet<string>();
         private ConcurrentDictionary<string, RespData> lastRespEachPlaylists = new ConcurrentDictionary<string, RespData>();
 
@@ -55,13 +67,30 @@ namespace SimpleMediaSDK
 
         private void LateUpdate()
         {
-            while (respQueue.Count > 0)
+            while (taskQueues.Count > 0)
             {
-                RespData data;
-                if (respQueue.TryDequeue(out data))
+                TaskQueue taskQueue;
+                if (taskQueues.TryDequeue(out taskQueue))
                 {
-                    if (onResp != null)
-                        onResp.Invoke(data);
+                    switch (taskQueue.type)
+                    {
+                        case TaskQueueType.Resp:
+                            if (onResp != null)
+                                onResp.Invoke((RespData)taskQueue.data);
+                            break;
+                        case TaskQueueType.Upload:
+                            if (onUpload != null)
+                                onUpload.Invoke();
+                            break;
+                        case TaskQueueType.Delete:
+                            if (onDelete != null)
+                                onDelete.Invoke();
+                            break;
+                        case TaskQueueType.Get:
+                            if (onGet != null)
+                                onGet.Invoke((List<MediaData>)taskQueue.data);
+                            break;
+                    }
                 }
             }
         }
@@ -81,7 +110,11 @@ namespace SimpleMediaSDK
         private void OnResp(SocketIOResponse resp)
         {
             RespData data = resp.GetValue<RespData>();
-            respQueue.Enqueue(data);
+            taskQueues.Enqueue(new TaskQueue()
+            {
+                type = TaskQueueType.Resp,
+                data = data,
+            });
             lastRespEachPlaylists[data.playListId] = data;
         }
 
@@ -193,8 +226,10 @@ namespace SimpleMediaSDK
             if (isHttpError || isNetworkError)
                 return;
             // Do something when upload video
-            if (onUploadVideo != null)
-                onUploadVideo.Invoke();
+            taskQueues.Enqueue(new TaskQueue()
+            {
+                type = TaskQueueType.Upload,
+            });
         }
 
         public async Task Delete(string id)
@@ -203,8 +238,10 @@ namespace SimpleMediaSDK
             if (result.IsNetworkError || result.IsHttpError)
                 return;
             // Do something when delete video
-            if (onDeleteVideo != null)
-                onDeleteVideo.Invoke();
+            taskQueues.Enqueue(new TaskQueue()
+            {
+                type = TaskQueueType.Delete,
+            });
         }
 
         public async Task<List<MediaData>> Get(string playListId)
@@ -213,8 +250,11 @@ namespace SimpleMediaSDK
             if (result.IsNetworkError || result.IsHttpError)
                 return new List<MediaData>();
             // Do something when get playlist
-            if (onGetVideos != null)
-                onGetVideos.Invoke(result.Content);
+            taskQueues.Enqueue(new TaskQueue()
+            {
+                type = TaskQueueType.Get,
+                data = result.Content,
+            });
             return result.Content;
         }
     }

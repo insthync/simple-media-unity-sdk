@@ -18,6 +18,9 @@ namespace SimpleMediaSDK
                 seekSlider.onValueChanged.AddListener(OnSeekSliderValueChanged);
             if (mediaList)
                 mediaList.Load(playListId);
+            MediaManager.Instance.onUpload += Instance_onUploadVideo;
+            MediaManager.Instance.onDelete += Instance_onDeleteVideo;
+
         }
 
         protected override void OnDisable()
@@ -25,6 +28,20 @@ namespace SimpleMediaSDK
             base.OnDisable();
             if (seekSlider)
                 seekSlider.onValueChanged.RemoveListener(OnSeekSliderValueChanged);
+            MediaManager.Instance.onUpload -= Instance_onUploadVideo;
+            MediaManager.Instance.onDelete -= Instance_onDeleteVideo;
+        }
+
+        private void Instance_onUploadVideo()
+        {
+            if (mediaList)
+                mediaList.Load(playListId);
+        }
+
+        private void Instance_onDeleteVideo()
+        {
+            if (mediaList)
+                mediaList.Load(playListId);
         }
 
         private void Update()

@@ -24,16 +24,25 @@ namespace SimpleMediaSDK
             videoPlayer.prepareCompleted -= VideoPlayer_prepareCompleted;
         }
 
-        private void Instance_onResp(RespData resp)
+        protected virtual void Instance_onResp(RespData resp)
         {
+            if (!resp.playListId.Equals(playListId))
+                return;
             CurrentMediaId = resp.mediaId;
-            videoPlayer.url = MediaManager.Instance.serviceAddress + resp.filePath.Substring(1);
-            videoPlayer.Prepare();
+            if (string.IsNullOrEmpty(resp.filePath))
+            {
+                videoPlayer.Stop();
+            }
+            else
+            {
+                videoPlayer.url = MediaManager.Instance.serviceAddress + resp.filePath.Substring(1);
+                videoPlayer.Prepare();
+            }
             LastResp = resp;
             LastRespTime = Time.unscaledTime;
         }
 
-        private void VideoPlayer_prepareCompleted(VideoPlayer source)
+        protected virtual void VideoPlayer_prepareCompleted(VideoPlayer source)
         {
             source.time = LastResp.time;
             if (LastResp.isPlaying)
