@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -10,18 +11,23 @@ namespace SimpleMediaSDK
         public string CurrentMediaId { get; protected set; }
         public RespData LastResp { get; protected set; }
         public float LastRespTime { get; protected set; }
+        public bool Mute { get; set; }
+        public static List<MediaPlayer> RegisteredMediaPlayers { get; private set; } = new List<MediaPlayer>();
 
         protected virtual void OnEnable()
         {
             MediaManager.Instance.onResp += Instance_onResp;
             videoPlayer.prepareCompleted += VideoPlayer_prepareCompleted;
             MediaManager.Instance.Sub(playListId);
+            if (!RegisteredMediaPlayers.Contains(this))
+                RegisteredMediaPlayers.Add(this);
         }
 
         protected virtual void OnDisable()
         {
             MediaManager.Instance.onResp -= Instance_onResp;
             videoPlayer.prepareCompleted -= VideoPlayer_prepareCompleted;
+            RegisteredMediaPlayers.Remove(this);
         }
 
         protected virtual void Instance_onResp(RespData resp)
@@ -51,6 +57,16 @@ namespace SimpleMediaSDK
                 source.Stop();
             else
                 source.Pause();
+        }
+
+        protected virtual void Update()
+        {
+            for (ushort i = 0; i < videoPlayer.controlledAudioTrackCount; ++i)
+            {
+                videoPlayer.SetDirectAudioMute(i, Mute);
+                if (videoPlayer.GetTargetAudioSource(i) != null)
+                    videoPlayer.GetTargetAudioSource(i).mute = Mute;
+            }
         }
     }
 }

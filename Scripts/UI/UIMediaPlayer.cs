@@ -20,7 +20,12 @@ namespace SimpleMediaSDK
                 mediaList.Load(playListId);
             MediaManager.Instance.onUpload += Instance_onUploadVideo;
             MediaManager.Instance.onDelete += Instance_onDeleteVideo;
-
+            // Don't register UI media player
+            RegisteredMediaPlayers.Remove(this);
+            foreach (var player in RegisteredMediaPlayers)
+            {
+                player.Mute = true;
+            }
         }
 
         protected override void OnDisable()
@@ -30,6 +35,10 @@ namespace SimpleMediaSDK
                 seekSlider.onValueChanged.RemoveListener(OnSeekSliderValueChanged);
             MediaManager.Instance.onUpload -= Instance_onUploadVideo;
             MediaManager.Instance.onDelete -= Instance_onDeleteVideo;
+            foreach (var player in RegisteredMediaPlayers)
+            {
+                player.Mute = false;
+            }
         }
 
         private void Instance_onUploadVideo()
@@ -44,8 +53,9 @@ namespace SimpleMediaSDK
                 mediaList.Load(playListId);
         }
 
-        private void Update()
+        protected override void Update()
         {
+            base.Update();
             if (seekSlider)
             {
                 seekSlider.minValue = 0;
