@@ -2,99 +2,127 @@ using System.Collections;
 using SimpleFileBrowser;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Video;
 
 namespace SimpleMediaSDK
 {
-    public class UIMediaPlayer : MediaPlayer
+    public class UIMediaPlayer : MonoBehaviour
     {
+        public RenderTexture targetTexture;
         public Slider seekSlider;
         public UIMediaList mediaList;
         protected float dirtyLastRespTime;
 
-        protected override void OnEnable()
+        protected VideoRenderMode defaultSourceRenderMode;
+        protected RenderTexture defaultSourceRenderTexture;
+        protected MediaPlayer source;
+        public MediaPlayer Source
         {
-            base.OnEnable();
-            if (seekSlider)
-                seekSlider.onValueChanged.AddListener(OnSeekSliderValueChanged);
-            if (mediaList)
-                mediaList.Load(playListId);
-            MediaManager.Instance.onUpload += Instance_onUploadVideo;
-            MediaManager.Instance.onDelete += Instance_onDeleteVideo;
-            // Don't register UI media player
-            RegisteredMediaPlayers.Remove(this);
-            foreach (var player in RegisteredMediaPlayers)
+            get { return source; }
+            set
             {
-                player.Mute = true;
+                if (source != null)
+                {
+                    source.videoPlayer.renderMode = defaultSourceRenderMode;
+                    source.videoPlayer.targetTexture = defaultSourceRenderTexture;
+                }
+                source = value;
+                if (source != null)
+                {
+                    defaultSourceRenderMode = source.videoPlayer.renderMode;
+                    defaultSourceRenderTexture = source.videoPlayer.targetTexture;
+                    source.videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+                    source.videoPlayer.targetTexture = targetTexture;
+                    if (mediaList)
+                        mediaList.Load(source.playListId);
+                }
             }
         }
 
-        protected override void OnDisable()
+        protected void OnEnable()
         {
-            base.OnDisable();
+            if (seekSlider)
+                seekSlider.onValueChanged.AddListener(OnSeekSliderValueChanged);
+            MediaManager.Instance.onUpload += Instance_onUploadVideo;
+            MediaManager.Instance.onDelete += Instance_onDeleteVideo;
+        }
+
+        protected void OnDisable()
+        {
             if (seekSlider)
                 seekSlider.onValueChanged.RemoveListener(OnSeekSliderValueChanged);
             MediaManager.Instance.onUpload -= Instance_onUploadVideo;
             MediaManager.Instance.onDelete -= Instance_onDeleteVideo;
-            foreach (var player in RegisteredMediaPlayers)
-            {
-                player.Mute = false;
-            }
+            Source = null;
         }
 
         private void Instance_onUploadVideo()
         {
             if (mediaList)
-                mediaList.Load(playListId);
+                mediaList.Load(source.playListId);
         }
 
         private void Instance_onDeleteVideo()
         {
             if (mediaList)
-                mediaList.Load(playListId);
+                mediaList.Load(source.playListId);
         }
 
-        protected override void Update()
+        protected void Update()
         {
-            base.Update();
+            if (source == null)
+                return;
             if (seekSlider)
             {
                 seekSlider.minValue = 0;
-                seekSlider.maxValue = (float)LastResp.duration;
-                if (dirtyLastRespTime != LastRespTime || LastResp.isPlaying)
+                seekSlider.maxValue = (float)source.LastResp.duration;
+                if (dirtyLastRespTime != source.LastRespTime || source.LastResp.isPlaying)
                 {
-                    dirtyLastRespTime = LastRespTime;
-                    seekSlider.SetValueWithoutNotify((float)LastResp.time + Time.unscaledTime - LastRespTime);
+                    dirtyLastRespTime = source.LastRespTime;
+                    seekSlider.SetValueWithoutNotify((float)source.LastResp.time + Time.unscaledTime - source.LastRespTime);
                 }
             }
         }
 
         private void OnSeekSliderValueChanged(float value)
         {
-            MediaManager.Instance.Seek(playListId, value);
+            if (source == null)
+                return;
+            MediaManager.Instance.Seek(source.playListId, value);
         }
 
         public void OnClickPlay()
         {
-            MediaManager.Instance.Play(playListId);
+            if (source == null)
+                return;
+            MediaManager.Instance.Play(source.playListId);
         }
 
         public void OnClickPause()
         {
-            MediaManager.Instance.Pause(playListId);
+            if (source == null)
+                return;
+            MediaManager.Instance.Pause(source.playListId);
         }
 
         public void OnClickStop()
         {
-            MediaManager.Instance.Stop(playListId);
+            if (source == null)
+                return;
+            MediaManager.Instance.Stop(source.playListId);
         }
 
         public void OnClickDelete()
         {
-            MediaManager.Instance.Delete(CurrentMediaId);
+            if (source == null)
+                return;
+            MediaManager.Instance.Delete(source.CurrentMediaId);
         }
 
         public void OnClickUpload()
         {
+            if (source == null)
+                return;
             FileBrowser.SetFilters(true, new FileBrowser.Filter("Video Files", ".mp4"));
             StartCoroutine(OpenFile());
         }
@@ -107,7 +135,7 @@ namespace SimpleMediaSDK
             {
                 var splitedPath = FileBrowser.Result[0].Split('.');
                 byte[] bytes = FileBrowserHelpers.ReadBytesFromFile(FileBrowser.Result[0]);
-                MediaManager.Instance.Upload(playListId, bytes, splitedPath[splitedPath.Length - 1]);
+                MediaManager.Instance.Upload(source.playListId, bytes, splitedPath[splitedPath.Length - 1]);
             }
             else
             {
