@@ -19,6 +19,8 @@ namespace SimpleMediaSDK
             Upload,
             Delete,
             Get,
+            AddUser,
+            RemoveUser,
         }
         private struct TaskQueue
         {
@@ -39,6 +41,7 @@ namespace SimpleMediaSDK
         public string serviceAddress = "http://localhost:8216";
         public string serviceSecretKey = "secret";
         public event Action<string> onAddUser;
+        public event Action<string> onRemoveUser;
         public event Action<RespData> onResp;
         public event Action onUpload;
         public event Action onDelete;
@@ -90,6 +93,14 @@ namespace SimpleMediaSDK
                             if (onGet != null)
                                 onGet.Invoke((List<MediaData>)taskQueue.data);
                             break;
+                        case TaskQueueType.AddUser:
+                            if (onAddUser != null)
+                                onAddUser.Invoke((string)taskQueue.data);
+                            break;
+                        case TaskQueueType.RemoveUser:
+                            if (onRemoveUser != null)
+                                onRemoveUser.Invoke((string)taskQueue.data);
+                            break;
                     }
                 }
             }
@@ -132,8 +143,25 @@ namespace SimpleMediaSDK
             RestClient.Result result = await RestClient.Post(RestClient.GetUrl(serviceAddress, "/add-user"), form, serviceSecretKey);
             if (result.IsNetworkError || result.IsHttpError)
                 return;
-            if (onAddUser != null)
-                onAddUser.Invoke(userToken);
+            taskQueues.Enqueue(new TaskQueue()
+            {
+                type = TaskQueueType.AddUser,
+                data = userToken,
+            });
+        }
+
+        public async Task RemoveUser(string userToken)
+        {
+            Dictionary<string, string> form = new Dictionary<string, string>();
+            form.Add(nameof(userToken), userToken);
+            RestClient.Result result = await RestClient.Post(RestClient.GetUrl(serviceAddress, "/remove-user"), form, serviceSecretKey);
+            if (result.IsNetworkError || result.IsHttpError)
+                return;
+            taskQueues.Enqueue(new TaskQueue()
+            {
+                type = TaskQueueType.AddUser,
+                data = userToken,
+            });
         }
 
         public async Task Sub(string playListId)
@@ -179,6 +207,15 @@ namespace SimpleMediaSDK
             data[nameof(time)] = time;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("seek", data);
+        }
+
+        public async Task Volume(string playListId, float volume)
+        {
+            Dictionary<string, object> data = new Dictionary<string, object>();
+            data[nameof(playListId)] = playListId;
+            data[nameof(volume)] = volume;
+            data[nameof(userToken)] = userToken;
+            await client.EmitAsync("volume", data);
         }
 
         public async Task Switch(string playListId, string mediaId)
