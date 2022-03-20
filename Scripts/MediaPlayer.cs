@@ -36,16 +36,33 @@ namespace SimpleMediaSDK
             }
             else
             {
-                videoPlayer.url = MediaManager.Instance.serviceAddress + resp.filePath.Substring(1);
-                videoPlayer.Prepare();
+                var url = MediaManager.Instance.serviceAddress + resp.filePath.Substring(1);
+                if (!url.Equals(videoPlayer.url) || System.Math.Abs(resp.time - videoPlayer.time) >= 1 || videoPlayer.time <= 0)
+                {
+                    videoPlayer.url = url;
+                    videoPlayer.Prepare();
+                }
             }
             LastResp = resp;
             LastRespTime = Time.unscaledTime;
+            if (videoPlayer.isPrepared)
+                SetVolume(videoPlayer, resp.volume);
         }
 
         protected virtual void VideoPlayer_prepareCompleted(VideoPlayer source)
         {
             source.time = LastResp.time;
+            SetVolume(videoPlayer, LastResp.volume);
+            if (LastResp.isPlaying)
+                source.Play();
+            else if (LastResp.time <= 0f)
+                source.Stop();
+            else
+                source.Pause();
+        }
+
+        protected virtual void SetVolume(VideoPlayer source, float volume)
+        {
             for (ushort i = 0; i < source.audioTrackCount; ++i)
             {
                 source.SetDirectAudioVolume(i, LastResp.volume);
@@ -53,12 +70,6 @@ namespace SimpleMediaSDK
                 if (audio)
                     audio.volume = LastResp.volume;
             }
-            if (LastResp.isPlaying)
-                source.Play();
-            else if (LastResp.time <= 0f)
-                source.Stop();
-            else
-                source.Pause();
         }
     }
 }

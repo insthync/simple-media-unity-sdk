@@ -111,8 +111,13 @@ namespace SimpleMediaSDK
             await Disconnect();
             lastRespEachPlaylists.Clear();
             client = new SocketIO(serviceAddress);
+            client.OnConnected += Client_OnConnected;
             client.On("resp", OnResp);
             await client.ConnectAsync();
+        }
+
+        private async void Client_OnConnected(object sender, EventArgs e)
+        {
             foreach (var pendingSub in pendingSubs)
                 await Sub(pendingSub);
             pendingSubs.Clear();
@@ -132,7 +137,10 @@ namespace SimpleMediaSDK
         public async Task Disconnect()
         {
             if (client != null && client.Connected)
+            {
+                client.OnConnected -= Client_OnConnected;
                 await client.DisconnectAsync();
+            }
             client = null;
         }
 
@@ -168,6 +176,7 @@ namespace SimpleMediaSDK
         {
             if (client == null || !client.Connected)
             {
+                Debug.LogError("Client not connected, pending sub " + playListId);
                 pendingSubs.Add(playListId);
                 return;
             }
