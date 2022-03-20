@@ -159,7 +159,7 @@ namespace SimpleMediaSDK
                 return;
             taskQueues.Enqueue(new TaskQueue()
             {
-                type = TaskQueueType.AddUser,
+                type = TaskQueueType.RemoveUser,
                 data = userToken,
             });
         }

@@ -10,6 +10,7 @@ namespace SimpleMediaSDK
     {
         public RenderTexture targetTexture;
         public Slider seekSlider;
+        public Slider volumeSlider;
         public UIMediaList mediaList;
         protected float dirtyLastRespTime;
 
@@ -43,6 +44,8 @@ namespace SimpleMediaSDK
         {
             if (seekSlider)
                 seekSlider.onValueChanged.AddListener(OnSeekSliderValueChanged);
+            if (volumeSlider)
+                volumeSlider.onValueChanged.AddListener(OnVolumeSliderValueChanged);
             MediaManager.Instance.onUpload += Instance_onUploadVideo;
             MediaManager.Instance.onDelete += Instance_onDeleteVideo;
         }
@@ -51,6 +54,8 @@ namespace SimpleMediaSDK
         {
             if (seekSlider)
                 seekSlider.onValueChanged.RemoveListener(OnSeekSliderValueChanged);
+            if (volumeSlider)
+                volumeSlider.onValueChanged.RemoveListener(OnVolumeSliderValueChanged);
             MediaManager.Instance.onUpload -= Instance_onUploadVideo;
             MediaManager.Instance.onDelete -= Instance_onDeleteVideo;
             Source = null;
@@ -72,14 +77,20 @@ namespace SimpleMediaSDK
         {
             if (source == null)
                 return;
-            if (seekSlider)
+            if (dirtyLastRespTime != source.LastRespTime || source.LastResp.isPlaying)
             {
-                seekSlider.minValue = 0;
-                seekSlider.maxValue = (float)source.LastResp.duration;
-                if (dirtyLastRespTime != source.LastRespTime || source.LastResp.isPlaying)
+                dirtyLastRespTime = source.LastRespTime;
+                if (seekSlider)
                 {
-                    dirtyLastRespTime = source.LastRespTime;
+                    seekSlider.minValue = 0;
+                    seekSlider.maxValue = (float)source.LastResp.duration;
                     seekSlider.SetValueWithoutNotify((float)source.LastResp.time + Time.unscaledTime - source.LastRespTime);
+                }
+                if (volumeSlider)
+                {
+                    volumeSlider.minValue = 0;
+                    volumeSlider.maxValue = 1;
+                    volumeSlider.SetValueWithoutNotify(source.LastResp.volume);
                 }
             }
         }
@@ -89,6 +100,13 @@ namespace SimpleMediaSDK
             if (source == null)
                 return;
             MediaManager.Instance.Seek(source.playListId, value);
+        }
+
+        private void OnVolumeSliderValueChanged(float value)
+        {
+            if (source == null)
+                return;
+            MediaManager.Instance.Volume(source.playListId, value);
         }
 
         public void OnClickPlay()

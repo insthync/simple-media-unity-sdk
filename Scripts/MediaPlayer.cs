@@ -46,6 +46,13 @@ namespace SimpleMediaSDK
         protected virtual void VideoPlayer_prepareCompleted(VideoPlayer source)
         {
             source.time = LastResp.time;
+            for (ushort i = 0; i < source.audioTrackCount; ++i)
+            {
+                source.SetDirectAudioVolume(i, LastResp.volume);
+                var audio = source.GetTargetAudioSource(i);
+                if (audio)
+                    audio.volume = LastResp.volume;
+            }
             if (LastResp.isPlaying)
                 source.Play();
             else if (LastResp.time <= 0f)
