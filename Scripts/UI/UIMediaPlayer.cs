@@ -16,6 +16,7 @@ namespace SimpleMediaSDK
 
         protected VideoRenderMode defaultSourceRenderMode;
         protected RenderTexture defaultSourceRenderTexture;
+        protected VideoAudioOutputMode defaultSourceAudioOutputMode;
         protected MediaPlayer source;
         public MediaPlayer Source
         {
@@ -26,14 +27,21 @@ namespace SimpleMediaSDK
                 {
                     source.videoPlayer.renderMode = defaultSourceRenderMode;
                     source.videoPlayer.targetTexture = defaultSourceRenderTexture;
+                    source.videoPlayer.audioOutputMode = defaultSourceAudioOutputMode;
+                    source.videoPlayer.Stop();
+                    MediaManager.Instance.Sub(source.playListId);
                 }
                 source = value;
                 if (source != null)
                 {
                     defaultSourceRenderMode = source.videoPlayer.renderMode;
                     defaultSourceRenderTexture = source.videoPlayer.targetTexture;
+                    defaultSourceAudioOutputMode = source.videoPlayer.audioOutputMode;
                     source.videoPlayer.renderMode = VideoRenderMode.RenderTexture;
                     source.videoPlayer.targetTexture = targetTexture;
+                    source.videoPlayer.audioOutputMode = VideoAudioOutputMode.Direct;
+                    source.videoPlayer.Stop();
+                    MediaManager.Instance.Sub(source.playListId);
                     if (mediaList)
                         mediaList.Load(source.playListId);
                 }
