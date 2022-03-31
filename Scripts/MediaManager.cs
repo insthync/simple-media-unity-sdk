@@ -32,8 +32,6 @@ namespace SimpleMediaSDK
         {
             get
             {
-                if (!instance)
-                    new GameObject("_SimpleMediaSDK").AddComponent<MediaManager>();
                 return instance;
             }
         }
