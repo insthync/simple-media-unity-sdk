@@ -1,9 +1,11 @@
+using Cysharp.Threading.Tasks;
 using SocketIOClient;
 using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -13,20 +15,6 @@ namespace SimpleMediaSDK
 {
     public class MediaManager : MonoBehaviour
     {
-        private enum TaskQueueType
-        {
-            Resp,
-            Upload,
-            Delete,
-            Get,
-            AddUser,
-            RemoveUser,
-        }
-        private struct TaskQueue
-        {
-            public TaskQueueType type;
-            public object data;
-        }
         private static MediaManager instance;
         public static MediaManager Instance
         {
@@ -46,7 +34,6 @@ namespace SimpleMediaSDK
         public event Action<List<MediaData>> onGet;
         public string userToken { get; set; }
         private SocketIO client;
-        private ConcurrentQueue<TaskQueue> taskQueues = new ConcurrentQueue<TaskQueue>();
         private HashSet<string> pendingSubs = new HashSet<string>();
         private ConcurrentDictionary<string, RespData> lastRespEachPlaylists = new ConcurrentDictionary<string, RespData>();
 
@@ -66,52 +53,20 @@ namespace SimpleMediaSDK
             await Disconnect();
         }
 
-        private void LateUpdate()
-        {
-            while (taskQueues.Count > 0)
-            {
-                TaskQueue taskQueue;
-                if (taskQueues.TryDequeue(out taskQueue))
-                {
-                    switch (taskQueue.type)
-                    {
-                        case TaskQueueType.Resp:
-                            if (onResp != null)
-                                onResp.Invoke((RespData)taskQueue.data);
-                            break;
-                        case TaskQueueType.Upload:
-                            if (onUpload != null)
-                                onUpload.Invoke();
-                            break;
-                        case TaskQueueType.Delete:
-                            if (onDelete != null)
-                                onDelete.Invoke();
-                            break;
-                        case TaskQueueType.Get:
-                            if (onGet != null)
-                                onGet.Invoke((List<MediaData>)taskQueue.data);
-                            break;
-                        case TaskQueueType.AddUser:
-                            if (onAddUser != null)
-                                onAddUser.Invoke((string)taskQueue.data);
-                            break;
-                        case TaskQueueType.RemoveUser:
-                            if (onRemoveUser != null)
-                                onRemoveUser.Invoke((string)taskQueue.data);
-                            break;
-                    }
-                }
-            }
-        }
-
         public async Task Connect()
         {
             await Disconnect();
             lastRespEachPlaylists.Clear();
-            client = new SocketIO(serviceAddress);
+            client = new SocketIO(serviceAddress, new SocketIOOptions()
+            {
+                Transport = SocketIOClient.Transport.TransportProtocol.WebSocket,
+            });
             client.OnConnected += Client_OnConnected;
             client.On("resp", OnResp);
+            // Always accept SSL
+            ServicePointManager.ServerCertificateValidationCallback = (sender, certificate, chain, policyErrors) => true;
             await client.ConnectAsync();
+            await UniTask.SwitchToMainThread();
         }
 
         private async void Client_OnConnected(object sender, EventArgs e)
@@ -121,14 +76,12 @@ namespace SimpleMediaSDK
             pendingSubs.Clear();
         }
 
-        private void OnResp(SocketIOResponse resp)
+        private async void OnResp(SocketIOResponse resp)
         {
+            await UniTask.SwitchToMainThread();
             RespData data = resp.GetValue<RespData>();
-            taskQueues.Enqueue(new TaskQueue()
-            {
-                type = TaskQueueType.Resp,
-                data = data,
-            });
+            if (onResp != null)
+                onResp.Invoke(data);
             lastRespEachPlaylists[data.playListId] = data;
         }
 
@@ -139,6 +92,7 @@ namespace SimpleMediaSDK
                 client.OnConnected -= Client_OnConnected;
                 await client.DisconnectAsync();
             }
+            await UniTask.SwitchToMainThread();
             client = null;
         }
 
@@ -149,11 +103,8 @@ namespace SimpleMediaSDK
             RestClient.Result result = await RestClient.Post(RestClient.GetUrl(serviceAddress, "/add-user"), form, serviceSecretKey);
             if (result.IsNetworkError || result.IsHttpError)
                 return;
-            taskQueues.Enqueue(new TaskQueue()
-            {
-                type = TaskQueueType.AddUser,
-                data = userToken,
-            });
+            if (onAddUser != null)
+                onAddUser.Invoke(userToken);
         }
 
         public async Task RemoveUser(string userToken)
@@ -163,11 +114,8 @@ namespace SimpleMediaSDK
             RestClient.Result result = await RestClient.Post(RestClient.GetUrl(serviceAddress, "/remove-user"), form, serviceSecretKey);
             if (result.IsNetworkError || result.IsHttpError)
                 return;
-            taskQueues.Enqueue(new TaskQueue()
-            {
-                type = TaskQueueType.RemoveUser,
-                data = userToken,
-            });
+            if (onRemoveUser != null)
+                onRemoveUser.Invoke(userToken);
         }
 
         public async Task Sub(string playListId)
@@ -181,6 +129,7 @@ namespace SimpleMediaSDK
             Dictionary<string, object> data = new Dictionary<string, object>();
             data[nameof(playListId)] = playListId;
             await client.EmitAsync("sub", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Play(string playListId)
@@ -189,6 +138,7 @@ namespace SimpleMediaSDK
             data[nameof(playListId)] = playListId;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("play", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Pause(string playListId)
@@ -197,6 +147,7 @@ namespace SimpleMediaSDK
             data[nameof(playListId)] = playListId;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("pause", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Stop(string playListId)
@@ -205,6 +156,7 @@ namespace SimpleMediaSDK
             data[nameof(playListId)] = playListId;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("stop", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Seek(string playListId, double time)
@@ -214,6 +166,7 @@ namespace SimpleMediaSDK
             data[nameof(time)] = time;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("seek", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Volume(string playListId, float volume)
@@ -223,6 +176,7 @@ namespace SimpleMediaSDK
             data[nameof(volume)] = volume;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("volume", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Switch(string playListId, string mediaId)
@@ -232,6 +186,7 @@ namespace SimpleMediaSDK
             data[nameof(mediaId)] = mediaId;
             data[nameof(userToken)] = userToken;
             await client.EmitAsync("switch", data);
+            await UniTask.SwitchToMainThread();
         }
 
         public async Task Upload(string playListId, byte[] file, string fileExt)
@@ -269,11 +224,8 @@ namespace SimpleMediaSDK
 #endif
             if (isHttpError || isNetworkError)
                 return;
-            // Do something when upload video
-            taskQueues.Enqueue(new TaskQueue()
-            {
-                type = TaskQueueType.Upload,
-            });
+            if (onUpload != null)
+                onUpload.Invoke();
         }
 
         public async Task Delete(string id)
@@ -281,24 +233,18 @@ namespace SimpleMediaSDK
             RestClient.Result result = await RestClient.Delete(RestClient.GetUrl(serviceAddress, "/" + id), userToken);
             if (result.IsNetworkError || result.IsHttpError)
                 return;
-            // Do something when delete video
-            taskQueues.Enqueue(new TaskQueue()
-            {
-                type = TaskQueueType.Delete,
-            });
+            if (onDelete != null)
+                onDelete.Invoke();
         }
 
         public async Task<List<MediaData>> Get(string playListId)
         {
+            await UniTask.SwitchToMainThread();
             RestClient.Result<List<MediaData>> result = await RestClient.Get<List<MediaData>>(RestClient.GetUrl(serviceAddress, "/" + playListId));
             if (result.IsNetworkError || result.IsHttpError)
                 return new List<MediaData>();
-            // Do something when get playlist
-            taskQueues.Enqueue(new TaskQueue()
-            {
-                type = TaskQueueType.Get,
-                data = result.Content,
-            });
+            if (onGet != null)
+                onGet.Invoke(result.Content);
             return result.Content;
         }
     }
