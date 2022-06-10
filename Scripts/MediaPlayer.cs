@@ -30,12 +30,20 @@ namespace SimpleMediaSDK
             if (!resp.playListId.Equals(playListId))
                 return;
             CurrentMediaId = resp.mediaId;
+            SetVolume(videoPlayer, resp.volume);
             if (string.IsNullOrEmpty(resp.filePath))
             {
                 videoPlayer.Stop();
             }
             else
             {
+                if (videoPlayer.isPrepared)
+                {
+                    if (resp.isPlaying)
+                        videoPlayer.Play();
+                    else
+                        videoPlayer.Pause();
+                }
                 var url = MediaManager.Instance.serviceAddress + resp.filePath.Substring(1);
                 if (!url.Equals(videoPlayer.url) || System.Math.Abs(resp.time - videoPlayer.time) >= 1 || videoPlayer.time <= 0)
                 {
@@ -45,8 +53,6 @@ namespace SimpleMediaSDK
             }
             LastResp = resp;
             LastRespTime = Time.unscaledTime;
-            if (videoPlayer.isPrepared)
-                SetVolume(videoPlayer, resp.volume);
         }
 
         protected virtual void VideoPlayer_prepareCompleted(VideoPlayer source)
@@ -54,21 +60,27 @@ namespace SimpleMediaSDK
             source.time = LastResp.time;
             SetVolume(videoPlayer, LastResp.volume);
             if (LastResp.isPlaying)
+            {
                 source.Play();
+            }
             else if (LastResp.time <= 0f)
+            {
                 source.Stop();
+            }
             else
+            {
                 source.Pause();
+            }
         }
 
         protected virtual void SetVolume(VideoPlayer source, float volume)
         {
             for (ushort i = 0; i < source.audioTrackCount; ++i)
             {
-                source.SetDirectAudioVolume(i, LastResp.volume);
+                source.SetDirectAudioVolume(i, volume);
                 var audio = source.GetTargetAudioSource(i);
                 if (audio)
-                    audio.volume = LastResp.volume;
+                    audio.volume = volume;
             }
         }
     }
