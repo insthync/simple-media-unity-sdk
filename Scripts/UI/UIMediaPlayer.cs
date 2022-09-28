@@ -33,16 +33,11 @@ namespace SimpleMediaSDK
                         source.videoPlayer.audioOutputMode = defaultSourceAudioOutputMode;
                         source.videoPlayer.Stop();
                     }
+                    if (source.avProPlayer != null && source.avProPlayer.AudioSource != null)
+                        source.avProPlayer.AudioSource.spatialBlend = 1f;
                     MediaManager.Instance.Sub(source.playListId);
                 }
                 source = value;
-                if (source.avProPlayer != null)
-                {
-                    if (source != null)
-                        source.SetAudioToDirect();
-                    else
-                        source.SetAudioToUnity();
-                }
                 if (source != null)
                 {
                     if (applyToMaterial != null)
@@ -61,6 +56,8 @@ namespace SimpleMediaSDK
                         source.videoPlayer.audioOutputMode = VideoAudioOutputMode.Direct;
                         source.videoPlayer.Stop();
                     }
+                    if (source.avProPlayer != null && source.avProPlayer.AudioSource != null)
+                        source.avProPlayer.AudioSource.spatialBlend = 0f;
                     MediaManager.Instance.Sub(source.playListId);
                     if (mediaList)
                         mediaList.Load(source.playListId);
