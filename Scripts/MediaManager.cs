@@ -24,7 +24,7 @@ namespace SimpleMediaSDK
                 return instance;
             }
         }
-
+        public SocketIOClient.Transport.TransportProtocol protocal = SocketIOClient.Transport.TransportProtocol.Polling;
         public string serviceAddress = "http://localhost:8216";
         public string serviceSecretKey = "secret";
         public GameObject rootUploadProgress;
@@ -64,7 +64,7 @@ namespace SimpleMediaSDK
             lastRespEachPlaylists.Clear();
             client = new SocketIO(serviceAddress, new SocketIOOptions()
             {
-                Transport = SocketIOClient.Transport.TransportProtocol.WebSocket,
+                Transport = protocal,
             });
             client.OnConnected += Client_OnConnected;
             client.On("resp", OnResp);
