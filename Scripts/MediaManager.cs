@@ -9,6 +9,7 @@ using System.Net;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 using UnityRestClient;
 
 namespace SimpleMediaSDK
@@ -26,6 +27,10 @@ namespace SimpleMediaSDK
 
         public string serviceAddress = "http://localhost:8216";
         public string serviceSecretKey = "secret";
+        public GameObject rootUploadProgress;
+        public Text textUploadProgress;
+        public string formatUploadProgress = "Uploading... {0}%";
+
         public event Action<string> onAddUser;
         public event Action<string> onRemoveUser;
         public event Action<RespData> onResp;
@@ -202,11 +207,17 @@ namespace SimpleMediaSDK
             webRequest.certificateHandler = new SimpleWebRequestCert();
             webRequest.SetRequestHeader("Authorization", "Bearer " + userToken);
 
-            UnityWebRequestAsyncOperation ayncOp = webRequest.SendWebRequest();
-            while (!ayncOp.isDone)
+            UnityWebRequestAsyncOperation asyncOp = webRequest.SendWebRequest();
+            while (!asyncOp.isDone)
             {
+                if (rootUploadProgress != null)
+                    rootUploadProgress.SetActive(true);
+                if (textUploadProgress != null)
+                    textUploadProgress.text = string.Format(formatUploadProgress, (asyncOp.progress * 100).ToString("N0"));
                 await Task.Yield();
             }
+            if (rootUploadProgress != null)
+                rootUploadProgress.SetActive(false);
 
             long responseCode = -1;
             bool isHttpError = true;
