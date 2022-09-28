@@ -9,6 +9,7 @@ namespace SimpleMediaSDK
     public class UIMediaPlayer : MonoBehaviour
     {
         public RenderTexture targetTexture;
+        public RenderHeads.Media.AVProVideo.ApplyToMaterial applyToMaterial;
         public Slider seekSlider;
         public Slider volumeSlider;
         public UIMediaList mediaList;
@@ -25,22 +26,41 @@ namespace SimpleMediaSDK
             {
                 if (source != null)
                 {
-                    source.videoPlayer.renderMode = defaultSourceRenderMode;
-                    source.videoPlayer.targetTexture = defaultSourceRenderTexture;
-                    source.videoPlayer.audioOutputMode = defaultSourceAudioOutputMode;
-                    source.videoPlayer.Stop();
+                    if (source.avProPlayer == null && source.videoPlayer != null)
+                    {
+                        source.videoPlayer.renderMode = defaultSourceRenderMode;
+                        source.videoPlayer.targetTexture = defaultSourceRenderTexture;
+                        source.videoPlayer.audioOutputMode = defaultSourceAudioOutputMode;
+                        source.videoPlayer.Stop();
+                    }
                     MediaManager.Instance.Sub(source.playListId);
                 }
                 source = value;
+                if (applyToMaterial != null)
+                {
+                    if (source.avProPlayer != null)
+                        applyToMaterial.Player = source.avProPlayer;
+                    applyToMaterial.gameObject.SetActive(source.avProPlayer != null);
+                }
+                if (source.avProPlayer != null)
+                {
+                    if (source != null)
+                        source.SetAudioToDirect();
+                    else
+                        source.SetAudioToUnity();
+                }
                 if (source != null)
                 {
-                    defaultSourceRenderMode = source.videoPlayer.renderMode;
-                    defaultSourceRenderTexture = source.videoPlayer.targetTexture;
-                    defaultSourceAudioOutputMode = source.videoPlayer.audioOutputMode;
-                    source.videoPlayer.renderMode = VideoRenderMode.RenderTexture;
-                    source.videoPlayer.targetTexture = targetTexture;
-                    source.videoPlayer.audioOutputMode = VideoAudioOutputMode.Direct;
-                    source.videoPlayer.Stop();
+                    if (source.avProPlayer == null && source.videoPlayer != null)
+                    {
+                        defaultSourceRenderMode = source.videoPlayer.renderMode;
+                        defaultSourceRenderTexture = source.videoPlayer.targetTexture;
+                        defaultSourceAudioOutputMode = source.videoPlayer.audioOutputMode;
+                        source.videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+                        source.videoPlayer.targetTexture = targetTexture;
+                        source.videoPlayer.audioOutputMode = VideoAudioOutputMode.Direct;
+                        source.videoPlayer.Stop();
+                    }
                     MediaManager.Instance.Sub(source.playListId);
                     if (mediaList)
                         mediaList.Load(source.playListId);
