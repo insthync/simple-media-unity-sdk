@@ -36,12 +36,6 @@ namespace SimpleMediaSDK
                     MediaManager.Instance.Sub(source.playListId);
                 }
                 source = value;
-                if (applyToMaterial != null)
-                {
-                    if (source.avProPlayer != null)
-                        applyToMaterial.Player = source.avProPlayer;
-                    applyToMaterial.gameObject.SetActive(source.avProPlayer != null);
-                }
                 if (source.avProPlayer != null)
                 {
                     if (source != null)
@@ -51,6 +45,12 @@ namespace SimpleMediaSDK
                 }
                 if (source != null)
                 {
+                    if (applyToMaterial != null)
+                    {
+                        if (source.avProPlayer != null)
+                            applyToMaterial.Player = source.avProPlayer;
+                        applyToMaterial.gameObject.SetActive(source.avProPlayer != null);
+                    }
                     if (source.avProPlayer == null && source.videoPlayer != null)
                     {
                         defaultSourceRenderMode = source.videoPlayer.renderMode;
