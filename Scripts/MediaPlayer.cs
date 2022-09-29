@@ -14,6 +14,7 @@ namespace SimpleMediaSDK
         public RespData LastResp { get; protected set; }
         public float LastRespTime { get; protected set; }
         private string _url = string.Empty;
+        public string CurrentVideoUrl { get { return _url; } }
         private bool _prepared = false;
         private bool _avProCreated = false;
 

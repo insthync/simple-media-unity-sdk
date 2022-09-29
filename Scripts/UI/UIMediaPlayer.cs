@@ -8,12 +8,12 @@ namespace SimpleMediaSDK
 {
     public class UIMediaPlayer : MonoBehaviour
     {
-        public RenderTexture targetTexture;
-        public RenderHeads.Media.AVProVideo.ApplyToMaterial applyToMaterial;
+        public RenderHeads.Media.AVProVideo.MediaPlayer mediaPlayer;
         public Slider seekSlider;
         public Slider volumeSlider;
         public UIMediaList mediaList;
         protected float dirtyLastRespTime;
+        protected string dirtyUrl;
 
         protected VideoRenderMode defaultSourceRenderMode;
         protected RenderTexture defaultSourceRenderTexture;
@@ -26,38 +26,16 @@ namespace SimpleMediaSDK
             {
                 if (source != null)
                 {
-                    if (source.avProPlayer == null && source.videoPlayer != null)
-                    {
-                        source.videoPlayer.renderMode = defaultSourceRenderMode;
-                        source.videoPlayer.targetTexture = defaultSourceRenderTexture;
-                        source.videoPlayer.audioOutputMode = defaultSourceAudioOutputMode;
-                        source.videoPlayer.Stop();
-                    }
-                    if (source.avProPlayer != null && source.avProPlayer.AudioSource != null)
-                        source.avProPlayer.AudioSource.spatialBlend = 1f;
+                    mediaPlayer.Stop();
+                    if (source.avProPlayer != null)
+                        source.avProPlayer.AudioMuted = false;
                     MediaManager.Instance.Sub(source.playListId);
                 }
                 source = value;
                 if (source != null)
                 {
-                    if (applyToMaterial != null)
-                    {
-                        if (source.avProPlayer != null)
-                            applyToMaterial.Player = source.avProPlayer;
-                        applyToMaterial.gameObject.SetActive(source.avProPlayer != null);
-                    }
-                    if (source.avProPlayer == null && source.videoPlayer != null)
-                    {
-                        defaultSourceRenderMode = source.videoPlayer.renderMode;
-                        defaultSourceRenderTexture = source.videoPlayer.targetTexture;
-                        defaultSourceAudioOutputMode = source.videoPlayer.audioOutputMode;
-                        source.videoPlayer.renderMode = VideoRenderMode.RenderTexture;
-                        source.videoPlayer.targetTexture = targetTexture;
-                        source.videoPlayer.audioOutputMode = VideoAudioOutputMode.Direct;
-                        source.videoPlayer.Stop();
-                    }
-                    if (source.avProPlayer != null && source.avProPlayer.AudioSource != null)
-                        source.avProPlayer.AudioSource.spatialBlend = 0f;
+                    if (source.avProPlayer != null)
+                        source.avProPlayer.AudioMuted = true;
                     MediaManager.Instance.Sub(source.playListId);
                     if (mediaList)
                         mediaList.Load(source.playListId);
@@ -73,6 +51,7 @@ namespace SimpleMediaSDK
                 volumeSlider.onValueChanged.AddListener(OnVolumeSliderValueChanged);
             MediaManager.Instance.onUpload += Instance_onUploadVideo;
             MediaManager.Instance.onDelete += Instance_onDeleteVideo;
+            mediaPlayer.Events.AddListener(AVProMediaPlayer_HandleEvent);
         }
 
         protected void OnDisable()
@@ -83,6 +62,7 @@ namespace SimpleMediaSDK
                 volumeSlider.onValueChanged.RemoveListener(OnVolumeSliderValueChanged);
             MediaManager.Instance.onUpload -= Instance_onUploadVideo;
             MediaManager.Instance.onDelete -= Instance_onDeleteVideo;
+            mediaPlayer.Events.RemoveListener(AVProMediaPlayer_HandleEvent);
             Source = null;
         }
 
@@ -105,18 +85,23 @@ namespace SimpleMediaSDK
             if (dirtyLastRespTime != source.LastRespTime || source.LastResp.isPlaying)
             {
                 dirtyLastRespTime = source.LastRespTime;
-                if (seekSlider)
+                if (seekSlider != null)
                 {
                     seekSlider.minValue = 0;
                     seekSlider.maxValue = (float)source.LastResp.duration;
                     seekSlider.SetValueWithoutNotify((float)source.LastResp.time + Time.unscaledTime - source.LastRespTime);
                 }
-                if (volumeSlider)
+                if (volumeSlider != null)
                 {
                     volumeSlider.minValue = 0;
                     volumeSlider.maxValue = 1;
                     volumeSlider.SetValueWithoutNotify(source.LastResp.volume);
                 }
+            }
+            if (dirtyUrl != source.CurrentVideoUrl)
+            {
+                dirtyUrl = source.CurrentVideoUrl;
+                mediaPlayer.OpenMedia(new RenderHeads.Media.AVProVideo.MediaPath(source.CurrentVideoUrl, RenderHeads.Media.AVProVideo.MediaPathType.AbsolutePathOrURL), false);
             }
         }
 
@@ -183,6 +168,26 @@ namespace SimpleMediaSDK
             else
             {
                 Debug.LogError("Wrong select file path");
+            }
+        }
+
+        protected virtual void AVProMediaPlayer_HandleEvent(RenderHeads.Media.AVProVideo.MediaPlayer mediaPlayer, RenderHeads.Media.AVProVideo.MediaPlayerEvent.EventType eventType, RenderHeads.Media.AVProVideo.ErrorCode code)
+        {
+            if (eventType == RenderHeads.Media.AVProVideo.MediaPlayerEvent.EventType.ReadyToPlay)
+            {
+                mediaPlayer.Control.Seek(source.LastResp.time);
+                if (source.LastResp.isPlaying)
+                {
+                    mediaPlayer.Play();
+                }
+                else if (source.LastResp.time <= 0f)
+                {
+                    mediaPlayer.Stop();
+                }
+                else
+                {
+                    mediaPlayer.Pause();
+                }
             }
         }
     }
