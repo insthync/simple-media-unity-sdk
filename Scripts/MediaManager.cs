@@ -27,6 +27,7 @@ namespace SimpleMediaSDK
         public SocketIOClient.Transport.TransportProtocol protocal = SocketIOClient.Transport.TransportProtocol.Polling;
         public string serviceAddress = "http://localhost:8216";
         public string serviceSecretKey = "secret";
+        public string contentAddress = "http://localhost:8216";
         public GameObject rootUploadProgress;
         public Text textUploadProgress;
         public string formatUploadProgress = "Uploading... {0}%";

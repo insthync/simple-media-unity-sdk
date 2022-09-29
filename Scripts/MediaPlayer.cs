@@ -107,7 +107,8 @@ namespace SimpleMediaSDK
             else
             {
                 // Prepare data to play video
-                var url = MediaManager.Instance.serviceAddress + resp.filePath.Substring(1);
+                var url = MediaManager.Instance.contentAddress + resp.filePath.Substring(1);
+
                 // AVPro
                 if (avProPlayer != null)
                 {
